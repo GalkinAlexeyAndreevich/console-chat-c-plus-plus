@@ -1,0 +1,3 @@
+﻿  Server.cpp
+D:\Galkin A Dvoynishev R\C++\romaServer\c-plus-main\Server\Server\Server.cpp(97,79): warning C4312: приведение типов: преобразование из "int" в "LPVOID" большего размера
+  Server.vcxproj -> D:\Galkin A Dvoynishev R\C++\romaServer\c-plus-main\Server\x64\Debug\Server.exe
