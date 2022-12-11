@@ -1,100 +1,202 @@
-﻿#include "stdafx.h"
-#pragma comment(lib, "ws2_32.lib")
-#include <winsock2.h>
-#include <iostream>
+﻿#include "general.h"
 
-#pragma warning(disable: 4996)
+vector<SOCKET> users;
+map<SOCKET, string> user_names;
 
-SOCKET Connections[100];
-int Counter = 0;
+bool IsCommand(string message);
+string ExtractCommand(string command);
+string ExtractCommandParam(string command);
+void ExitUser(SOCKET socket);
+void recvFile(SOCKET socket);
 
-void ClientHandler(int index) {
-	setlocale(LC_ALL, "ru");
-	int lenExit = 0;
-	int exitArr[100];
-	char exit[7] = "./exit";
-	
-	char msg[256];
+void ClientHandler(SOCKET socket) {
 	while (true) {
-		recv(Connections[index], msg, sizeof(msg), NULL);
-		bool cont = false;
-		char myLogin[50] = "";
-		char fullMsg[100]{};
-		for (int i = 0; i < Counter; i++) {
-			if ((msg[0] == exit[0]) && (msg[1] == exit[1]) && (msg[2] == exit[2]) && (msg[3] == exit[3]) && (msg[4] == exit[4]) && (msg[5] == exit[5])) {
-				exitArr[lenExit] = index;
-				lenExit += 1;
+		vector<char> msg(40000);
+ 		const size_t code = recv(socket, &msg[0], msg.size(), NULL);
 
-				for (int i = 0; i < strlen(msg); i++) {
-					if (i < 6) continue;
-					strncpy(myLogin, (msg + 6), sizeof(myLogin));
-				}
-				strcat(fullMsg, myLogin);
-				strcat(fullMsg, " unconnected");
-				for (int i = 0; i < Counter; i++) {
-					if (i == index)continue;
-					send(Connections[i], fullMsg, sizeof(fullMsg), NULL);
-				}
-				std::cout << "Client " << myLogin << " unconnect" << std::endl;
-				ExitThread(0);
-				
+		if (code == 0) {
+			continue;
+		}
+		if (code == -1) {
+			ExitUser(socket);
+			continue;
+		}
+
+		string str_message;
+		if (code >= 0) {
+			str_message.append(msg.cbegin(), msg.cend());
+			str_message.resize(code);
+		}
+		cout << str_message << endl;
+
+
+
+		if (IsCommand(str_message)) {
+			const string command = ExtractCommand(str_message);
+			cout << command << endl;
+			if (command == "exit") {
+				ExitUser(socket);
 			}
-			
-			for (int j = 0; j < lenExit; j++) {
-				if (exitArr[j] == i) {
-					cont=true;
-				}
+			else if (command == "login") {
+				const string login = ExtractCommandParam(str_message);
+				user_names[socket] = login;
 			}
-			if (i == index || cont==true) {
+			else if (command == "file") {
+				recvFile(socket);
+			}
+			continue;
+		}
+
+
+		for (int i = 0; i < users.size(); i++) {
+			if (users[i] == socket || users[i] == 0) {
 				continue;
 			}
-
-			send(Connections[i], msg, sizeof(msg), NULL);
-			
+			const string msg = user_names[socket] + ": " + str_message;
+			send(users[i], (char*)msg.c_str(), msg.length() + 1, NULL);
 		}
 
 	}
 }
 
-int main(int argc, char* argv[]) {
-	//WSAStartup
-	WSAData wsaData;
-	WORD DLLVersion = MAKEWORD(2, 1);
-	if (WSAStartup(DLLVersion, &wsaData) != 0) {
-		std::cout << "Error" << std::endl;
-		std::exit(1);
+int main(int argc, char* argv[]){
+	SetConsoleCP(1251);
+	SetConsoleOutputCP(1251);
+
+	int error;
+
+	const char IP_SERV[] = "192.168.56.1";
+	const int PORT_NUM = 1111;
+
+	WSADATA wsData;
+	error = WSAStartup(MAKEWORD(2, 2), &wsData);
+
+	if (error != 0) {
+		cout << "Error WinSock version initializaion #" << WSAGetLastError() << endl;
+		return 1;
 	}
 
-	SOCKADDR_IN addr;
-	int sizeofaddr = sizeof(addr);
-	addr.sin_addr.s_addr = inet_addr("192.168.226.12");
-	addr.sin_port = htons(1111);
-	addr.sin_family = AF_INET;
+	SOCKET ServSock = socket(AF_INET, SOCK_STREAM, NULL);
+	if (ServSock == INVALID_SOCKET) {
+		cout << "Error initialization socket # " << WSAGetLastError() << endl;
+		closesocket(ServSock);
+		WSACleanup();
+		return 1;
+	}
 
-	SOCKET sListen = socket(AF_INET, SOCK_STREAM, NULL);
-	bind(sListen, (SOCKADDR*)&addr, sizeof(addr));
-	listen(sListen, SOMAXCONN);
+	in_addr ip_to_num;
+	error = inet_pton(AF_INET, IP_SERV, &ip_to_num);
 
+	if (error <= 0) {
+		cout << "Error in IP translation to special numeric format" << endl;
+		return 1;
+	}
 
+	sockaddr_in servInfo;
+	servInfo.sin_family = AF_INET;
+	servInfo.sin_addr = ip_to_num;
+	servInfo.sin_port = htons(PORT_NUM);
+
+	error = bind(ServSock, (sockaddr*)&servInfo, sizeof(servInfo));
+	if (error != 0) {
+		cout << "Error Socket binding to server info. Error # " << WSAGetLastError() << endl;
+		closesocket(ServSock);
+		WSACleanup();
+		return 1;
+	}
+
+	error = listen(ServSock, SOMAXCONN);
+	if (error != 0) {
+		cout << "Can't start to listen to. Error # " << WSAGetLastError() << endl;
+		closesocket(ServSock);
+		WSACleanup();
+		return 1;
+	}
+	else {
+		cout << "Listening..." << endl;
+	}
+	
 	SOCKET newConnection;
 	for (int i = 0; i < 100; i++) {
-		newConnection = accept(sListen, (SOCKADDR*)&addr, &sizeofaddr);
-
-		if (newConnection == 0) {
-			std::cout << "Error #2\n";
+		sockaddr_in clientInfo;
+		int clientInfo_size = sizeof(clientInfo);
+		newConnection = accept(ServSock, (SOCKADDR*)&clientInfo, &clientInfo_size);
+		if (newConnection == INVALID_SOCKET) {
+			cout << "Client detected, but can't connect to a client. Error # " << WSAGetLastError() << endl;
+			closesocket(ServSock);
+			closesocket(newConnection);
+			WSACleanup();
+			return 1;
 		}
 		else {
-			std::cout << "Client Connected!\n";
-			char msg[256] = "Connection is true";
-			send(newConnection, msg, sizeof(msg), NULL);
-
-			Connections[i] = newConnection;
-			Counter++;
-			CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)ClientHandler, (LPVOID)(i), NULL, NULL);
+			cout << "Client Connected!" << endl;
+			string msg = "Connection is true";
+			send(newConnection, msg.c_str(), msg.length(), NULL);
+			users.push_back(newConnection);
+			CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)ClientHandler, (LPVOID)(newConnection), NULL, NULL);
 		}
 	}
 
 
 	system("pause");
 	return 0;
+}
+
+
+bool IsCommand(string message) {
+	return message.find("./") == 0;
+}
+
+string ExtractCommand(string command) {
+	const int end_command_exit = command.find("|");
+	return command.substr(2, end_command_exit - 2);
+}
+string ExtractCommandParam(string command) {
+	const int start_command_param = command.find("|");
+	return command.substr(start_command_param + 1);
+}
+
+void ExitUser(SOCKET socket) {
+	const auto login = user_names[socket];
+	string fullMsg = (login == "" ? "anonim" : login) + " unconnected";
+	for (auto i = 0; i < users.size(); i++) {
+		if (users[i] == socket)  continue;
+		send(users[i], fullMsg.c_str(), fullMsg.length(), NULL);
+	}
+	cout << fullMsg << endl;
+	closesocket(socket);
+	user_names.erase(socket);
+	auto item = find(users.begin(), users.end(), socket);
+	if (item != users.end()) {
+		users.erase(item);
+	}
+	ExitThread(0);
+}
+void recvFile(SOCKET socket) {
+
+	char file_name[40];
+	char file_size_str[16];
+	
+	recv(socket, file_name, 40, 0);
+
+	recv(socket, file_size_str, 16, 0);
+	int file_size = atoi(file_size_str);
+	char* bytes = new char[file_size];
+	
+	recv(socket, bytes, file_size, 0);
+
+	cout << "name " << file_name << endl;
+	cout << "size " << file_size << endl;
+	
+	for (int i = 0; i < users.size(); i++) {
+		if (users[i] == socket || users[i] == 0) {
+			continue;
+		}
+		char file_command[8] = "./file|";
+		send(users[i], file_command, 8, 0);
+		send(users[i], file_name, 40, 0);
+		send(users[i], to_string(file_size).c_str(), 16, 0);
+		send(users[i], bytes, file_size, 0);
+	}
+	cout << "server send file" << endl;
 }

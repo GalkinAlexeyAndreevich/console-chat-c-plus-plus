@@ -1,79 +1,176 @@
-﻿#include "stdafx.h"
-#pragma comment(lib, "ws2_32.lib")
-#include <winsock2.h>
-#include <iostream>
-#include <stdlib.h>
+﻿#include <general.h>
 
-#pragma warning(disable: 4996)
+
+const string exit_command = "./exit|";
+const string login_command = "./login|";
+const string file_command = "./file|";
 
 SOCKET Connection;
+
+void sendFile(SOCKET socket, string file_name);
+void recvFile(SOCKET socket);
 void ClientHandler() {
-	char msg[256];
-	std::cout << "для выхода введите ./exit" << std::endl;
+	
+	cout << "to exit, enter " << exit_command << endl;
+	cout << "to change login enter " << login_command <<" + your new login" << endl;
+	cout << "to send the file enter " << file_command << " + file name(no dir) and in this path(where .exe)" << endl;
+	vector<char> msg(40000);
 	while (true) {
-		recv(Connection, msg, sizeof(msg), NULL);
-		std::cout << msg << std::endl;
+		int received_count = recv(Connection, &msg[0], msg.size(), NULL);
+		string str_message;
+		if (received_count >= 0) {
+			str_message.append(msg.cbegin(), msg.cend());
+			str_message.resize(received_count);
+		}
+		if (received_count == -1) {
+			cout << "you unconnect" << endl;
+			closesocket(Connection);
+			exit(EXIT_SUCCESS);
+		}
+		if (received_count == 0) {
+			continue;
+		}
+
+		if (str_message.substr(0, 7) == file_command) {
+			recvFile(Connection);
+		}
+		else {
+			cout<< str_message << endl;
+		}
+		
 	}
 }
 
 int main(int argc, char* argv[]) {
 	//WSAStartup
-	setlocale(LC_ALL, "ru");
-	WSAData wsaData;
-	WORD DLLVersion = MAKEWORD(2, 1);
-	if (WSAStartup(DLLVersion, &wsaData) != 0) {
-		std::cout << "Error" << std::endl;
-		exit(1);
-	}
+	SetConsoleCP(1251);
+	SetConsoleOutputCP(1251);
 
-	SOCKADDR_IN addr;
-	int sizeofaddr = sizeof(addr);
-	addr.sin_addr.s_addr = inet_addr("192.168.226.12");
-	addr.sin_port = htons(1111);
-	addr.sin_family = AF_INET;
+	const char SERVER_IP[] = "192.168.56.1";				
+	const short SERVER_PORT_NUM = 1111;				
 
-	Connection = socket(AF_INET, SOCK_STREAM, NULL);
-	if (connect(Connection, (SOCKADDR*)&addr, sizeof(addr)) != 0) {
-		std::cout << "Error: failed connect to server.\n";
+	int error;									
+
+	in_addr ip_to_num;
+	inet_pton(AF_INET, SERVER_IP, &ip_to_num);
+
+	WSADATA wsData;
+	error = WSAStartup(MAKEWORD(2, 2), &wsData);
+
+	if (error != 0) {
+		cout << "Error WinSock version initializaion #" << WSAGetLastError() << endl;
 		return 1;
 	}
-	std::cout << "Connected!\n";
-	char login[70];
-	std::cout << "your login:" << std::endl;
-	std::cin.getline(login, sizeof(login));
+
+	SOCKET ClientSock = socket(AF_INET, SOCK_STREAM, 0);
+
+	if (ClientSock == INVALID_SOCKET) {
+		cout << "Error initialization socket # " << WSAGetLastError() << endl;
+		closesocket(ClientSock);
+		WSACleanup();
+	}
+
+	sockaddr_in servInfo;
+
+	servInfo.sin_family = AF_INET;
+	servInfo.sin_addr = ip_to_num;
+	servInfo.sin_port = htons(SERVER_PORT_NUM);
+
+
+
+	Connection = socket(AF_INET, SOCK_STREAM, NULL);
+	error = connect(Connection, (SOCKADDR*)&servInfo, sizeof(servInfo));
+	if (error != 0) {
+		cout << "Connection to Server is FAILED. Error # " << WSAGetLastError() << endl;
+		closesocket(ClientSock);
+		WSACleanup();
+		return 1;
+	}
+	cout << "Connected!" << endl;
+	string login;
+	cout << "your login:" << endl;
+	getline(cin, login);
+	login = login_command + login;
+	send(Connection, login.c_str(), login.length(), NULL);
 
 	CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)ClientHandler, NULL, NULL, NULL);
-
-	char msg1[256];
-	
-	char exit[7] = "./exit";
-	char newW[100] = "./exit";
-	char dv[5] =":";
 	
 	while (true) {
-		char fullMsg[256]{};
-		bool close = false;
-		std::cin.getline(msg1, sizeof(msg1));
-		if ((msg1[0] == exit[0]) && (msg1[1] == exit[1]) && (msg1[2] == exit[2]) && (msg1[3] == exit[3]) && (msg1[4] == exit[4]) && (msg1[5] == exit[5])) {
-			close = true;
-			strcat(fullMsg, msg1);
-			strcat(fullMsg, login);
-		}
-		else {
-			strcat(fullMsg, login);
-			strcat(fullMsg, dv);
-			strcat(fullMsg, msg1);
-		}
+		string message;
+		getline(cin,message);
 
-		send(Connection, fullMsg, sizeof(fullMsg), NULL);
+		if (message.length() == 0) continue;
+
+		send(Connection, message.c_str(), message.length(), NULL);
+
+		if(message.substr(0, 7) == exit_command)exit(EXIT_SUCCESS);
+		if(message.substr(0, 7) == file_command)sendFile(Connection, message.substr(7));
+		
 		Sleep(10);
-		if (close) {
-			std::cout << "you unconnect" << std::endl;
-			std::exit(EXIT_SUCCESS);
-		}
 	}
 	closesocket(Connection);
 	WSACleanup();
 	system("pause");
 	return 0;
+
+}
+
+void sendFile(SOCKET socket, string file_name) {
+	fstream file;
+	
+	file.open(file_name, ios_base::in | ios_base::binary);
+
+	if (file.is_open()) {
+
+		int file_size = fs::file_size(file_name) + 1;
+
+		char* bytes = new char[file_size];
+
+		file.read(bytes, file_size);
+
+		cout << "name " << file_name << endl;
+		cout << "size " << file_size << endl;
+
+		send(socket, file_name.c_str(), 40, 0);
+		
+		send(socket, to_string(file_size).c_str(), 16, 0);
+		send(socket, bytes, file_size, 0);
+		
+		
+	}
+	else {
+		cout << "Error file open" << endl;
+	}
+	file.close();
+}
+
+void recvFile(SOCKET socket) {
+
+	char file_name[40];
+	char file_size_str[16];
+
+	recv(socket, file_name, 40, 0);
+	recv(socket, file_size_str, 16, 0);
+	int file_size = atoi(file_size_str);
+	char* bytes = new char[file_size];
+
+	recv(socket, bytes, file_size, 0);
+
+	cout << "name " << file_name << endl;
+	cout << "size " << file_size << endl;
+
+	fstream file;
+	file.open(file_name, ios_base::out | ios_base::binary);
+
+
+	if (file.is_open()) {
+		file.write(bytes, file_size);
+		cout << "ok save" << endl;
+	}
+	else {
+		cout << "Error file open" << endl;
+	}
+
+	delete[] bytes;
+	file.close();
 }

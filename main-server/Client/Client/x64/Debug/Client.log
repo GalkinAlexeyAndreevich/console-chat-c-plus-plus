@@ -1,2 +1,6 @@
 ﻿  Client.cpp
-  Client.vcxproj -> D:\Galkin A Dvoynishev R\C++\romaServer\c-plus-main\Client\x64\Debug\Client.exe
+C:\Users\sirwi\OneDrive\Рабочий стол\main-server-final1\main-server\Client\Client\Client.cpp(19,66): warning C4267: аргумент: преобразование из "size_t" в "int"; возможна потеря данных
+C:\Users\sirwi\OneDrive\Рабочий стол\main-server-final1\main-server\Client\Client\Client.cpp(94,54): warning C4267: аргумент: преобразование из "size_t" в "int"; возможна потеря данных
+C:\Users\sirwi\OneDrive\Рабочий стол\main-server-final1\main-server\Client\Client\Client.cpp(104,59): warning C4267: аргумент: преобразование из "size_t" в "int"; возможна потеря данных
+C:\Users\sirwi\OneDrive\Рабочий стол\main-server-final1\main-server\Client\Client\Client.cpp(125,17): warning C4244: инициализация: преобразование "uintmax_t" в "int", возможна потеря данных
+  Client.vcxproj -> C:\Users\sirwi\OneDrive\Рабочий стол\main-server-final1\main-server\Client\x64\Debug\Client.exe

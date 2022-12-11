@@ -1,3 +1,10 @@
 ﻿  Server.cpp
-D:\Galkin A Dvoynishev R\C++\romaServer\c-plus-main\Server\Server\Server.cpp(97,79): warning C4312: приведение типов: преобразование из "int" в "LPVOID" большего размера
-  Server.vcxproj -> D:\Galkin A Dvoynishev R\C++\romaServer\c-plus-main\Server\x64\Debug\Server.exe
+C:\Users\sirwi\OneDrive\Рабочий стол\main-server-final1\main-server\Server\Server\Server.cpp(15,62): warning C4267: аргумент: преобразование из "size_t" в "int"; возможна потеря данных
+C:\Users\sirwi\OneDrive\Рабочий стол\main-server-final1\main-server\Server\Server\Server.cpp(56,61): warning C4267: аргумент: преобразование из "size_t" в "int"; возможна потеря данных
+C:\Users\sirwi\OneDrive\Рабочий стол\main-server-final1\main-server\Server\Server\Server.cpp(134,55): warning C4267: аргумент: преобразование из "size_t" в "int"; возможна потеря данных
+C:\Users\sirwi\OneDrive\Рабочий стол\main-server-final1\main-server\Server\Server\Server.cpp(151,48): warning C4267: инициализация: преобразование из "size_t" в "int"; возможна потеря данных
+C:\Users\sirwi\OneDrive\Рабочий стол\main-server-final1\main-server\Server\Server\Server.cpp(151,48): warning C4267: инициализация: преобразование из "size_t" в "const int"; возможна потеря данных
+C:\Users\sirwi\OneDrive\Рабочий стол\main-server-final1\main-server\Server\Server\Server.cpp(155,51): warning C4267: инициализация: преобразование из "size_t" в "int"; возможна потеря данных
+C:\Users\sirwi\OneDrive\Рабочий стол\main-server-final1\main-server\Server\Server\Server.cpp(155,51): warning C4267: инициализация: преобразование из "size_t" в "const int"; возможна потеря данных
+C:\Users\sirwi\OneDrive\Рабочий стол\main-server-final1\main-server\Server\Server\Server.cpp(164,57): warning C4267: аргумент: преобразование из "size_t" в "int"; возможна потеря данных
+  Server.vcxproj -> C:\Users\sirwi\OneDrive\Рабочий стол\main-server-final1\main-server\Server\x64\Debug\Server.exe

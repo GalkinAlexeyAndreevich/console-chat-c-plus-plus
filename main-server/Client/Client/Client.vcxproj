@@ -116,7 +116,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>D:\Galkin A Dvoynishev R\C++\romaServer\c-plus-main\Client\external;D:\Проекты\Рома\с++\Client\external;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\sirwi\OneDrive\Рабочий стол\main-server-final1\main-server\Client\Client;D:\Galkin A Dvoynishev R\C++\romaServer\main-server\Client\Client;D:\Galkin A Dvoynishev R\C++\romaServer\main-server\Client\external;D:\Galkin A Dvoynishev R\C++\romaServer\c-plus-main\Client\external;D:\Проекты\Рома\с++\Client\external;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -141,6 +141,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Client.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="general.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
